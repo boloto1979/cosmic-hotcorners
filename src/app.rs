@@ -172,6 +172,7 @@ impl cosmic::Application for AppModel {
                         Corner::BottomLeft => &self.config.bottom_left,
                         Corner::BottomRight => &self.config.bottom_right,
                     };
+                    println!("[hot-corners] Triggering {} → {:?}", corner.name(), action);
                     execute_action(action);
                 }
             }
