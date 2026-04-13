@@ -1,26 +1,84 @@
-# Cosmic Hot Corners
+# cosmic-hot-corners
 
-An application for the COSMIC™ desktop
+A native **Hot Corners** daemon for the [COSMIC™ Desktop](https://system76.com/cosmic) (Pop!_OS), built entirely with [libcosmic](https://github.com/pop-os/libcosmic) and [iced](https://github.com/iced-rs/iced).
+
+## Overview
+
+`cosmic-hot-corners` runs as a background daemon with no visible window. It places four invisible 10×10 px [wlr-layer-shell](https://wayland.app/protocols/wlr-layer-shell-unstable-v1) surfaces — one at each screen corner — using `Layer::Overlay`. When the pointer enters a corner and remains there longer than the configured delay, a configurable action is triggered.
+
+The project is fully integrated with the COSMIC ecosystem: configuration is stored and watched via `cosmic-config`, and all Wayland interaction is handled through libcosmic's `iced_winit` + `cctk` (COSMIC Client Toolkit) backend.
+
+## Architecture
+
+```
+main.rs
+└── cosmic::app::Settings::no_main_window(true)   // daemon mode, no visible window
+
+app.rs
+├── init()       Creates 4 SctkLayerSurfaceSettings (Overlay layer, corner anchors)
+│                and issues get_layer_surface() tasks for each.
+├── subscription() Listens to CursorEntered / CursorLeft via listen_with()
+├── update()     On CursorEntered: increments pending_generation, schedules a
+│                tokio::time::sleep(delay_ms) future.
+│                On TriggerCorner: fires action only if generation matches
+│                (cancellation-safe delay — rapid movement never triggers).
+└── execute_action() Dispatches CornerAction variants.
+
+config.rs
+└── Config (cosmic-config v1)
+    ├── delay_ms: u64          // activation delay in milliseconds
+    ├── top_left: CornerAction
+    ├── top_right: CornerAction
+    ├── bottom_left: CornerAction
+    └── bottom_right: CornerAction
+```
+
+## Corner Actions
+
+| Variant | Behavior |
+|---|---|
+| `Disabled` | No-op |
+| `ShowWorkspaces` | Spawns `cosmic-workspaces` |
+| `ShowDesktop` | *(D-Bus integration — planned)* |
+| `OpenLauncher` | Spawns `cosmic-launcher` |
+| `ToggleNightLight` | *(D-Bus integration — planned)* |
+| `RunCommand(String)` | Executes an arbitrary shell command via `sh -c` |
+
+## Configuration
+
+Configuration is managed by `cosmic-config` and stored under:
+
+```
+~/.config/cosmic/io.github.cosmic-hot-corners/v1/
+```
+
+Each field is a separate file. Example — enable workspace overview on the top-left corner with a 400 ms delay:
+
+```sh
+mkdir -p ~/.config/cosmic/io.github.cosmic-hot-corners/v1
+echo '400' > ~/.config/cosmic/io.github.cosmic-hot-corners/v1/delay_ms
+echo 'ShowWorkspaces' > ~/.config/cosmic/io.github.cosmic-hot-corners/v1/top_left
+```
+
+## Requirements
+
+- COSMIC Desktop (Wayland compositor with `wlr-layer-shell` support)
+- `libxkbcommon-dev`, `libwayland-dev`, `pkg-config`
+- Rust toolchain (edition 2024)
 
 ## Installation
 
-A [justfile](./justfile) is included by default for the [casey/just][just] command runner.
+A [justfile](./justfile) is included for the [casey/just][just] command runner.
 
-- `just` builds the application with the default `just build-release` recipe
-- `just run` builds and runs the application
-- `just install` installs the project into the system
-- `just vendor` creates a vendored tarball
-- `just build-vendored` compiles with vendored dependencies from that tarball
-- `just check` runs clippy on the project to check for linter warnings
-- `just check-json` can be used by IDEs that support LSP
+```sh
+just build-release   # compile in release mode
+just install         # install to the system
+just run             # build and run (development)
+just vendor          # vendor dependencies for offline/packaged builds
+just build-vendored  # build from vendored sources
+```
 
-## Translators
-
-[Fluent][fluent] is used for localization of the software. Fluent's translation files are found in the [i18n directory](./i18n). New translations may copy the [English (en) localization](./i18n/en) of the project, rename `en` to the desired [ISO 639-1 language code][iso-codes], and then translations can be provided for each [message identifier][fluent-guide]. If no translation is necessary, the message may be omitted.
-
-## Packaging
-
-If packaging for a Linux distribution, vendor dependencies locally with the `vendor` rule, and build with the vendored sources using the `build-vendored` rule. When installing files, use the `rootdir` and `prefix` variables to change installation paths.
+For distribution packaging:
 
 ```sh
 just vendor
@@ -28,15 +86,14 @@ just build-vendored
 just rootdir=debian/cosmic-hot-corners prefix=/usr install
 ```
 
-It is recommended to build a source tarball with the vendored dependencies, which can typically be done by running `just vendor` on the host system before it enters the build environment.
+## Development
 
-## Developers
+Install [rustup][rustup] and configure your editor with [rust-analyzer][rust-analyzer]. To reduce compile times, disable LTO in the release profile and use [mold][mold] + [sccache][sccache].
 
-Developers should install [rustup][rustup] and configure their editor to use [rust-analyzer][rust-analyzer]. To improve compilation times, disable LTO in the release profile, install the [mold][mold] linker, and configure [sccache][sccache] for use with Rust. The [mold][mold] linker will only improve link times if LTO is disabled.
+## License
 
-[fluent]: https://projectfluent.org/
-[fluent-guide]: https://projectfluent.org/fluent/guide/hello.html
-[iso-codes]: https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes
+[MPL-2.0](./LICENSE)
+
 [just]: https://github.com/casey/just
 [rustup]: https://rustup.rs/
 [rust-analyzer]: https://rust-analyzer.github.io/
