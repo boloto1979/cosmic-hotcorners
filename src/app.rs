@@ -55,11 +55,12 @@ pub struct AppModel {
     corner_ids: [(window::Id, Corner); 4],
     config: Config,
     pending_generation: u64,
+    active_corner: Option<window::Id>,
 }
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    CursorEntered(window::Id),
+    CursorMoved(window::Id),
     CursorLeft(window::Id),
     TriggerCorner(Corner, u64),
 }
@@ -120,6 +121,7 @@ impl cosmic::Application for AppModel {
                 corner_ids,
                 config,
                 pending_generation: 0,
+                active_corner: None,
             },
             Task::batch(task_vec),
         )
@@ -138,7 +140,7 @@ impl cosmic::Application for AppModel {
 
     fn subscription(&self) -> Subscription<Message> {
         listen_with(|event, _status, window_id| match event {
-            Event::Mouse(mouse::Event::CursorEntered) => Some(Message::CursorEntered(window_id)),
+            Event::Mouse(mouse::Event::CursorMoved { .. }) => Some(Message::CursorMoved(window_id)),
             Event::Mouse(mouse::Event::CursorLeft) => Some(Message::CursorLeft(window_id)),
             _ => None,
         })
@@ -146,11 +148,15 @@ impl cosmic::Application for AppModel {
 
     fn update(&mut self, message: Message) -> Task<Message> {
         match message {
-            Message::CursorEntered(id) => {
+            Message::CursorMoved(id) => {
+                if self.active_corner == Some(id) {
+                    return Task::none();
+                }
                 let Some((_, corner)) = self.corner_ids.iter().find(|(cid, _)| *cid == id) else {
                     return Task::none();
                 };
                 let corner = *corner;
+                self.active_corner = Some(id);
                 self.pending_generation += 1;
                 let trigger_gen = self.pending_generation;
                 let delay = Duration::from_millis(self.config.delay_ms);
@@ -161,6 +167,7 @@ impl cosmic::Application for AppModel {
             }
             Message::CursorLeft(id) => {
                 if self.corner_ids.iter().any(|(cid, _)| *cid == id) {
+                    self.active_corner = None;
                     self.pending_generation += 1;
                 }
             }
