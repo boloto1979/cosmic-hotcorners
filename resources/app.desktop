@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=Cosmic Hot Corners
+Comment=An application for the COSMIC™ desktop
+Type=Application
+Icon=com.github.pop-os.cosmic-app-template
+Exec=cosmic-hot-corners %F
+Terminal=false
+StartupNotify=true
+Categories=COSMIC
+Keywords=COSMIC
+MimeType=
