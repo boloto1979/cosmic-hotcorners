@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=Cosmic Hot Corners
+Comment=Hot corners daemon for the COSMIC™ desktop
+Type=Application
+Icon=io.github.cosmic-hot-corners
+Exec=cosmic-hot-corners
+Terminal=false
+StartupNotify=false
+NoDisplay=true
+Categories=COSMIC
+Keywords=COSMIC

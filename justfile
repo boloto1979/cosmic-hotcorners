@@ -1,7 +1,7 @@
 # Name of the application's binary.
 name := 'cosmic-hot-corners'
 # The unique ID of the application.
-appid := 'com.github.pop-os.cosmic-app-template'
+appid := 'io.github.cosmic-hot-corners'
 
 # Path to root file system, which defaults to `/`.
 rootdir := ''
@@ -66,6 +66,15 @@ install:
     install -Dm0644 {{ 'resources' / desktop }} {{desktop-dst}}
     install -Dm0644 {{ 'resources' / appdata }} {{appdata-dst}}
     install -Dm0644 {{ 'resources' / 'icons' / 'hicolor' / 'scalable' / 'apps' / 'icon.svg' }} {{icon-svg-dst}}
+
+# Enables autostart for the current user
+autostart:
+    mkdir -p ~/.config/autostart
+    install -Dm0644 {{ 'resources' / desktop }} ~/.config/autostart/{{desktop}}
+
+# Disables autostart for the current user
+autostart-disable:
+    rm -f ~/.config/autostart/{{desktop}}
 
 # Uninstalls installed files
 uninstall:

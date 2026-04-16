@@ -92,6 +92,8 @@ sudo just install
 
 ### 3. Configure corners
 
+By default, all corners are set to `Disabled` — the daemon runs but does nothing until you configure at least one corner. This is intentional: each user chooses which corners to activate and what they should do.
+
 Configuration is stored under `~/.config/cosmic/io.github.cosmic-hot-corners/v1/`. Each field is a separate file in [RON](https://github.com/ron-rs/ron) format.
 
 ```sh
@@ -115,19 +117,24 @@ echo 'Disabled' > ~/.config/cosmic/io.github.cosmic-hot-corners/v1/bottom_left
 
 ### 4. Autostart
 
-To start the daemon automatically with your session:
+To start the daemon automatically on login:
 
 ```sh
-mkdir -p ~/.config/autostart
-cat > ~/.config/autostart/cosmic-hot-corners.desktop << 'EOF'
-[Desktop Entry]
-Type=Application
-Name=cosmic-hot-corners
-Exec=/usr/local/bin/cosmic-hot-corners
-Hidden=false
-NoDisplay=false
-X-GNOME-Autostart-enabled=true
-EOF
+just autostart
+```
+
+To disable autostart:
+
+```sh
+just autostart-disable
+```
+
+This installs/removes a `.desktop` file in `~/.config/autostart/`. The daemon does not run as a systemd service — it is launched by the COSMIC session manager alongside other autostart applications.
+
+To stop a running instance:
+
+```sh
+pkill -f cosmic-hot-corners
 ```
 
 For distribution packaging:
