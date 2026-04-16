@@ -63,6 +63,7 @@ pub enum Message {
     CursorMoved(window::Id),
     CursorLeft(window::Id),
     TriggerCorner(Corner, u64),
+    Noop,
 }
 
 impl cosmic::Application for AppModel {
@@ -180,31 +181,59 @@ impl cosmic::Application for AppModel {
                         Corner::BottomRight => &self.config.bottom_right,
                     };
                     println!("[hot-corners] Triggering {} → {:?}", corner.name(), action);
-                    execute_action(action);
+                    return execute_action(action);
                 }
             }
+            Message::Noop => {}
         }
         Task::none()
     }
 }
 
-fn execute_action(action: &CornerAction) {
+fn execute_action(action: &CornerAction) -> Task<Message> {
     match action {
-        CornerAction::Disabled => {}
-        CornerAction::ShowWorkspaces => {
-            let _ = std::process::Command::new("cosmic-workspaces").spawn();
-        }
-        CornerAction::ShowDesktop => {
-            println!("[hot-corners] ShowDesktop: TODO D-Bus");
-        }
-        CornerAction::OpenLauncher => {
-            let _ = std::process::Command::new("cosmic-launcher").spawn();
-        }
-        CornerAction::ToggleNightLight => {
-            println!("[hot-corners] ToggleNightLight: TODO D-Bus");
-        }
+        CornerAction::Disabled => Task::none(),
+        CornerAction::ShowWorkspaces => cosmic::task::future(async {
+            let _ = dbus_show_workspaces().await;
+            Message::Noop
+        }),
+        CornerAction::ShowDesktop => Task::none(),
+        CornerAction::OpenLauncher => cosmic::task::future(async {
+            let _ = dbus_open_launcher().await;
+            Message::Noop
+        }),
+        CornerAction::ToggleNightLight => Task::none(),
         CornerAction::RunCommand(cmd) => {
             let _ = std::process::Command::new("sh").args(["-c", cmd]).spawn();
+            Task::none()
         }
     }
+}
+
+async fn dbus_show_workspaces() -> zbus::Result<()> {
+    let conn = zbus::Connection::session().await?;
+    conn.call_method(
+        Some("com.system76.CosmicWorkspaces"),
+        "/com/system76/CosmicWorkspaces",
+        Some("com.system76.CosmicWorkspaces"),
+        "Show",
+        &(),
+    )
+    .await?;
+    Ok(())
+}
+
+async fn dbus_open_launcher() -> zbus::Result<()> {
+    let conn = zbus::Connection::session().await?;
+    let args: std::collections::HashMap<&str, zbus::zvariant::Value<'_>> =
+        std::collections::HashMap::new();
+    conn.call_method(
+        Some("com.system76.CosmicLauncher"),
+        "/com/system76/CosmicLauncher",
+        Some("org.freedesktop.DbusActivation"),
+        "Activate",
+        &args,
+    )
+    .await?;
+    Ok(())
 }
