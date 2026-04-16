@@ -38,10 +38,10 @@ config.rs
 | Variant | Behavior |
 |---|---|
 | `Disabled` | No-op |
-| `ShowWorkspaces` | Spawns `cosmic-workspaces` |
-| `ShowDesktop` | *(D-Bus integration — planned)* |
-| `OpenLauncher` | Spawns `cosmic-launcher` |
-| `ToggleNightLight` | *(D-Bus integration — planned)* |
+| `ShowWorkspaces` | Opens the workspaces overview via D-Bus (`com.system76.CosmicWorkspaces`) |
+| `ShowDesktop` | *(not yet available in COSMIC)* |
+| `OpenLauncher` | Opens the app launcher via D-Bus (`com.system76.CosmicLauncher`) |
+| `ToggleNightLight` | *(not yet available in COSMIC)* |
 | `RunCommand(String)` | Executes an arbitrary shell command via `sh -c` |
 
 ## Configuration
@@ -68,14 +68,66 @@ echo 'ShowWorkspaces' > ~/.config/cosmic/io.github.cosmic-hot-corners/v1/top_lef
 
 ## Installation
 
-A [justfile](./justfile) is included for the [casey/just][just] command runner.
+### 1. Install build dependencies
 
 ```sh
-just build-release   # compile in release mode
-just install         # install to the system
-just run             # build and run (development)
-just vendor          # vendor dependencies for offline/packaged builds
-just build-vendored  # build from vendored sources
+sudo apt install libxkbcommon-dev libwayland-dev pkg-config
+```
+
+### 2. Clone and install
+
+```sh
+git clone https://github.com/your-username/cosmic-hotcorners
+cd cosmic-hotcorners
+cargo build --release
+sudo cp target/release/cosmic-hotcorners /usr/local/bin/
+```
+
+Or using [just][just]:
+
+```sh
+just build-release
+sudo just install
+```
+
+### 3. Configure corners
+
+Configuration is stored under `~/.config/cosmic/io.github.cosmic-hot-corners/v1/`. Each field is a separate file in [RON](https://github.com/ron-rs/ron) format.
+
+```sh
+mkdir -p ~/.config/cosmic/io.github.cosmic-hot-corners/v1
+
+# Delay in milliseconds (default: 300)
+echo '300' > ~/.config/cosmic/io.github.cosmic-hot-corners/v1/delay_ms
+
+# Top-left: open workspaces overview
+echo 'ShowWorkspaces' > ~/.config/cosmic/io.github.cosmic-hot-corners/v1/top_left
+
+# Top-right: open app launcher
+echo 'OpenLauncher' > ~/.config/cosmic/io.github.cosmic-hot-corners/v1/top_right
+
+# Bottom-right: run a custom command
+echo 'RunCommand("notify-send Hello World")' > ~/.config/cosmic/io.github.cosmic-hot-corners/v1/bottom_right
+
+# Bottom-left: disabled (default)
+echo 'Disabled' > ~/.config/cosmic/io.github.cosmic-hot-corners/v1/bottom_left
+```
+
+### 4. Autostart
+
+To start the daemon automatically with your session:
+
+```sh
+mkdir -p ~/.config/autostart
+cat > ~/.config/autostart/cosmic-hot-corners.desktop << 'EOF'
+[Desktop Entry]
+Type=Application
+Name=cosmic-hot-corners
+Exec=/usr/local/bin/cosmic-hot-corners
+Hidden=false
+NoDisplay=false
+X-GNOME-Autostart-enabled=true
+EOF
 ```
 
 For distribution packaging:

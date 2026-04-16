@@ -101,7 +101,7 @@ impl cosmic::Application for AppModel {
                 input_zone: None,
                 anchor: corner.anchor(),
                 size: Some((Some(CORNER_SIZE), Some(CORNER_SIZE))),
-                exclusive_zone: 0,
+                exclusive_zone: -1,
                 namespace: String::from("hot-corners"),
                 ..Default::default()
             };
