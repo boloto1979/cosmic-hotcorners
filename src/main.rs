@@ -3,6 +3,7 @@
 mod app;
 mod config;
 mod i18n;
+mod settings_app;
 
 fn main() -> cosmic::iced::Result {
     // Get the system's preferred languages.
@@ -11,9 +12,14 @@ fn main() -> cosmic::iced::Result {
     // Enable localizations to be applied.
     i18n::init(&requested_languages);
 
-    let settings = cosmic::app::Settings::default()
-        .no_main_window(true)
-        .transparent(true);
-
-    cosmic::app::run::<app::AppModel>(settings, ())
+    let args: Vec<String> = std::env::args().collect();
+    if args.get(1).map(String::as_str) == Some("--settings") {
+        let settings = cosmic::app::Settings::default();
+        cosmic::app::run::<settings_app::SettingsApp>(settings, ())
+    } else {
+        let settings = cosmic::app::Settings::default()
+            .no_main_window(true)
+            .transparent(true);
+        cosmic::app::run::<app::AppModel>(settings, ())
+    }
 }

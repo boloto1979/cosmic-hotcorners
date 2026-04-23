@@ -12,17 +12,22 @@ The project is fully integrated with the COSMIC ecosystem: configuration is stor
 
 ```
 main.rs
-└── cosmic::app::Settings::no_main_window(true)   // daemon mode, no visible window
+├── cosmic-hot-corners            // daemon mode (no visible window)
+└── cosmic-hot-corners --settings // GUI settings window
 
 app.rs
-├── init()       Creates 4 SctkLayerSurfaceSettings (Overlay layer, corner anchors)
-│                and issues get_layer_surface() tasks for each.
-├── subscription() Listens to CursorEntered / CursorLeft via listen_with()
-├── update()     On CursorEntered: increments pending_generation, schedules a
-│                tokio::time::sleep(delay_ms) future.
-│                On TriggerCorner: fires action only if generation matches
-│                (cancellation-safe delay — rapid movement never triggers).
-└── execute_action() Dispatches CornerAction variants.
+├── init()         Loads config; waits for Wayland output events to create surfaces.
+├── subscription() Listens to OutputEvent (Added/Removed) to manage surfaces per monitor,
+│                  CursorMoved/CursorLeft for pointer detection, and watch_config() for
+│                  live config reload without restarting the daemon.
+├── update()
+│   ├── OutputAdded   → creates 4 layer-shell surfaces (10×10 px, Overlay) for that output
+│   ├── OutputRemoved → destroys the 4 surfaces for that output
+│   ├── CursorMoved   → increments pending_generation, schedules tokio::time::sleep(delay_ms)
+│   ├── TriggerCorner → fires action only if generation still matches
+│   │                   (cancellation-safe — rapid movement never triggers)
+│   └── ConfigUpdated → hot-reloads config; next trigger uses new settings
+└── execute_action() Dispatches CornerAction variants via D-Bus or sh -c.
 
 config.rs
 └── Config (cosmic-config v1)
@@ -31,6 +36,11 @@ config.rs
     ├── top_right: CornerAction
     ├── bottom_left: CornerAction
     └── bottom_right: CornerAction
+
+settings_app.rs
+└── GUI settings window (libcosmic, follows COSMIC light/dark theme automatically)
+    ├── Activation delay field
+    └── 2×2 grid of corner cards, each with action dropdown + optional command input
 ```
 
 ## Corner Actions
@@ -46,7 +56,15 @@ config.rs
 
 ## Configuration
 
-Configuration is managed by `cosmic-config` and stored under:
+### GUI (recommended)
+
+After installing, open **Hot Corners Settings** from the COSMIC app drawer, or right-click the daemon's entry in the launcher and choose **Configure Hot Corners**.
+
+The settings window lets you assign an action to each corner and adjust the activation delay. Changes are saved instantly — no restart required.
+
+### Manual (advanced)
+
+Configuration is also stored as plain files managed by `cosmic-config`, under:
 
 ```
 ~/.config/cosmic/io.github.cosmic-hot-corners/v1/
@@ -79,41 +97,19 @@ sudo apt install libxkbcommon-dev libwayland-dev pkg-config
 ```sh
 git clone https://github.com/your-username/cosmic-hotcorners
 cd cosmic-hotcorners
-cargo build --release
-sudo cp target/release/cosmic-hotcorners /usr/local/bin/
-```
-
-Or using [just][just]:
-
-```sh
 just build-release
 sudo just install
 ```
 
-### 3. Configure corners
+### 3. Open the settings
 
-By default, all corners are set to `Disabled` — the daemon runs but does nothing until you configure at least one corner. This is intentional: each user chooses which corners to activate and what they should do.
-
-Configuration is stored under `~/.config/cosmic/io.github.cosmic-hot-corners/v1/`. Each field is a separate file in [RON](https://github.com/ron-rs/ron) format.
+Launch the settings GUI to configure each corner:
 
 ```sh
-mkdir -p ~/.config/cosmic/io.github.cosmic-hot-corners/v1
-
-# Delay in milliseconds (default: 300)
-echo '300' > ~/.config/cosmic/io.github.cosmic-hot-corners/v1/delay_ms
-
-# Top-left: open workspaces overview
-echo 'ShowWorkspaces' > ~/.config/cosmic/io.github.cosmic-hot-corners/v1/top_left
-
-# Top-right: open app launcher
-echo 'OpenLauncher' > ~/.config/cosmic/io.github.cosmic-hot-corners/v1/top_right
-
-# Bottom-right: run a custom command
-echo 'RunCommand("notify-send Hello World")' > ~/.config/cosmic/io.github.cosmic-hot-corners/v1/bottom_right
-
-# Bottom-left: disabled (default)
-echo 'Disabled' > ~/.config/cosmic/io.github.cosmic-hot-corners/v1/bottom_left
+cosmic-hot-corners --settings
 ```
+
+Or open **Hot Corners Settings** from the COSMIC app drawer.
 
 ### 4. Autostart
 
@@ -130,6 +126,8 @@ just autostart-disable
 ```
 
 This installs/removes a `.desktop` file in `~/.config/autostart/`. The daemon does not run as a systemd service — it is launched by the COSMIC session manager alongside other autostart applications.
+
+Configuration changes made in the settings GUI are applied instantly — the running daemon reloads config automatically without needing a restart.
 
 To stop a running instance:
 

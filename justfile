@@ -14,6 +14,8 @@ cargo-target-dir := env('CARGO_TARGET_DIR', 'target')
 appdata := appid + '.metainfo.xml'
 # Application's desktop entry
 desktop := appid + '.desktop'
+# Settings app desktop entry
+desktop-settings := appid + '.settings.desktop'
 # Application's icon.
 icon-svg := appid + '.svg'
 
@@ -22,6 +24,7 @@ base-dir := absolute_path(clean(rootdir / prefix))
 appdata-dst := base-dir / 'share' / 'appdata' / appdata
 bin-dst := base-dir / 'bin' / name
 desktop-dst := base-dir / 'share' / 'applications' / desktop
+desktop-settings-dst := base-dir / 'share' / 'applications' / desktop-settings
 icons-dst := base-dir / 'share' / 'icons' / 'hicolor'
 icon-svg-dst := icons-dst / 'scalable' / 'apps'
 
@@ -64,6 +67,7 @@ run *args:
 install:
     install -Dm0755 {{ cargo-target-dir / 'release' / name }} {{bin-dst}}
     install -Dm0644 {{ 'resources' / desktop }} {{desktop-dst}}
+    install -Dm0644 {{ 'resources' / desktop-settings }} {{desktop-settings-dst}}
     install -Dm0644 {{ 'resources' / appdata }} {{appdata-dst}}
     install -Dm0644 {{ 'resources' / 'icons' / 'hicolor' / 'scalable' / 'apps' / 'icon.svg' }} {{icon-svg-dst}}
 
@@ -78,7 +82,7 @@ autostart-disable:
 
 # Uninstalls installed files
 uninstall:
-    rm {{bin-dst}} {{desktop-dst}} {{icon-svg-dst}}
+    rm {{bin-dst}} {{desktop-dst}} {{desktop-settings-dst}} {{icon-svg-dst}}
 
 # Vendor dependencies locally
 vendor:

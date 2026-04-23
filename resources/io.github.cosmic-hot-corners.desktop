@@ -9,3 +9,8 @@ StartupNotify=false
 NoDisplay=true
 Categories=COSMIC
 Keywords=COSMIC
+Actions=Settings;
+
+[Desktop Action Settings]
+Name=Configure Hot Corners
+Exec=cosmic-hot-corners --settings

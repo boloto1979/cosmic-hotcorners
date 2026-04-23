@@ -4,13 +4,18 @@ use crate::config::{Config, CornerAction};
 use cosmic::app::Task;
 use cosmic::cosmic_config::{self, CosmicConfigEntry};
 use cosmic::iced::event::listen_with;
+use cosmic::iced::event::wayland::{Event as WaylandEvent, OutputEvent};
 use cosmic::iced::platform_specific::shell::commands::layer_surface::{
-    get_layer_surface, Anchor, KeyboardInteractivity, Layer,
+    destroy_layer_surface, get_layer_surface, Anchor, KeyboardInteractivity, Layer,
 };
-use cosmic::iced::platform_specific::runtime::wayland::layer_surface::SctkLayerSurfaceSettings;
+use cosmic::iced::platform_specific::runtime::wayland::layer_surface::{
+    IcedOutput, SctkLayerSurfaceSettings,
+};
 use cosmic::iced::{mouse, Event, Length, Subscription, window};
 use cosmic::widget;
+use cosmic::ApplicationExt;
 use cosmic::Element;
+use cosmic::cctk::sctk::reexports::client::protocol::wl_output::WlOutput;
 use std::time::Duration;
 
 const CORNER_SIZE: u32 = 10;
@@ -52,7 +57,7 @@ const CORNERS: [Corner; 4] = [
 
 pub struct AppModel {
     core: cosmic::Core,
-    corner_ids: [(window::Id, Corner); 4],
+    outputs: Vec<(WlOutput, [(window::Id, Corner); 4])>,
     config: Config,
     pending_generation: u64,
     active_corner: Option<window::Id>,
@@ -63,6 +68,9 @@ pub enum Message {
     CursorMoved(window::Id),
     CursorLeft(window::Id),
     TriggerCorner(Corner, u64),
+    OutputAdded(WlOutput),
+    OutputRemoved(WlOutput),
+    ConfigUpdated(Config),
     Noop,
 }
 
@@ -92,39 +100,15 @@ impl cosmic::Application for AppModel {
             })
             .unwrap_or_default();
 
-        let surfaces: [(window::Id, SctkLayerSurfaceSettings); 4] = CORNERS.map(|corner| {
-            let id = window::Id::unique();
-            let settings = SctkLayerSurfaceSettings {
-                id,
-                layer: Layer::Overlay,
-                keyboard_interactivity: KeyboardInteractivity::None,
-                input_zone: None,
-                anchor: corner.anchor(),
-                size: Some((Some(CORNER_SIZE), Some(CORNER_SIZE))),
-                exclusive_zone: -1,
-                namespace: String::from("hot-corners"),
-                ..Default::default()
-            };
-            (id, settings)
-        });
-
-        let corner_ids: [(window::Id, Corner); 4] =
-            std::array::from_fn(|i| (surfaces[i].0, CORNERS[i]));
-
-        let task_vec: Vec<Task<Message>> = surfaces
-            .into_iter()
-            .map(|(_, s)| get_layer_surface(s))
-            .collect();
-
         (
             AppModel {
                 core,
-                corner_ids,
+                outputs: Vec::new(),
                 config,
                 pending_generation: 0,
                 active_corner: None,
             },
-            Task::batch(task_vec),
+            Task::none(),
         )
     }
 
@@ -140,23 +124,83 @@ impl cosmic::Application for AppModel {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        listen_with(|event, _status, window_id| match event {
+        let pointer_events = listen_with(|event, _status, window_id| match event {
             Event::Mouse(mouse::Event::CursorMoved { .. }) => Some(Message::CursorMoved(window_id)),
             Event::Mouse(mouse::Event::CursorLeft) => Some(Message::CursorLeft(window_id)),
+            Event::PlatformSpecific(cosmic::iced::event::PlatformSpecific::Wayland(
+                WaylandEvent::Output(evt, output),
+            )) => match evt {
+                OutputEvent::Created(_) => Some(Message::OutputAdded(output)),
+                OutputEvent::Removed => Some(Message::OutputRemoved(output)),
+                _ => None,
+            },
             _ => None,
-        })
+        });
+
+        let config_watch = self
+            .watch_config::<Config>(Self::APP_ID)
+            .map(|update| Message::ConfigUpdated(update.config));
+
+        Subscription::batch([pointer_events, config_watch])
     }
 
     fn update(&mut self, message: Message) -> Task<Message> {
         match message {
+            Message::OutputAdded(output) => {
+                let surfaces: [(window::Id, SctkLayerSurfaceSettings); 4] = CORNERS.map(|corner| {
+                    let id = window::Id::unique();
+                    let settings = SctkLayerSurfaceSettings {
+                        id,
+                        layer: Layer::Overlay,
+                        keyboard_interactivity: KeyboardInteractivity::None,
+                        input_zone: None,
+                        anchor: corner.anchor(),
+                        size: Some((Some(CORNER_SIZE), Some(CORNER_SIZE))),
+                        exclusive_zone: -1,
+                        output: IcedOutput::Output(output.clone()),
+                        namespace: String::from("hot-corners"),
+                        ..Default::default()
+                    };
+                    (id, settings)
+                });
+
+                let corner_ids: [(window::Id, Corner); 4] =
+                    std::array::from_fn(|i| (surfaces[i].0, CORNERS[i]));
+
+                self.outputs.push((output, corner_ids));
+
+                let tasks: Vec<Task<Message>> = surfaces
+                    .into_iter()
+                    .map(|(_, s)| get_layer_surface(s))
+                    .collect();
+                return Task::batch(tasks);
+            }
+            Message::OutputRemoved(output) => {
+                if let Some(pos) = self.outputs.iter().position(|(o, _)| *o == output) {
+                    let (_, corner_ids) = self.outputs.remove(pos);
+                    let tasks: Vec<Task<Message>> = corner_ids
+                        .iter()
+                        .map(|(id, _): &(window::Id, Corner)| destroy_layer_surface(*id))
+                        .collect();
+                    return Task::batch(tasks);
+                }
+            }
+            Message::ConfigUpdated(config) => {
+                self.config = config;
+            }
             Message::CursorMoved(id) => {
                 if self.active_corner == Some(id) {
                     return Task::none();
                 }
-                let Some((_, corner)) = self.corner_ids.iter().find(|(cid, _)| *cid == id) else {
+                let corner = self
+                    .outputs
+                    .iter()
+                    .flat_map(|(_, ids): &(WlOutput, [(window::Id, Corner); 4])| ids.iter())
+                    .find(|(cid, _)| *cid == id)
+                    .map(|(_, c)| *c);
+                let Some(corner) = corner else {
                     return Task::none();
                 };
-                let corner = *corner;
                 self.active_corner = Some(id);
                 self.pending_generation += 1;
                 let trigger_gen = self.pending_generation;
@@ -167,7 +211,12 @@ impl cosmic::Application for AppModel {
                 });
             }
             Message::CursorLeft(id) => {
-                if self.corner_ids.iter().any(|(cid, _)| *cid == id) {
+                let known = self
+                    .outputs
+                    .iter()
+                    .flat_map(|(_, ids): &(WlOutput, [(window::Id, Corner); 4])| ids.iter())
+                    .any(|(cid, _)| *cid == id);
+                if known {
                     self.active_corner = None;
                     self.pending_generation += 1;
                 }

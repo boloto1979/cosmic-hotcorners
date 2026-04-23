@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Hot Corners Settings
+Comment=Configure hot corners for the COSMIC™ desktop
+Type=Application
+Icon=io.github.cosmic-hot-corners
+Exec=cosmic-hot-corners --settings
+Terminal=false
+StartupNotify=false
+Categories=COSMIC;Settings;
+Keywords=COSMIC;corners;settings;configure;
