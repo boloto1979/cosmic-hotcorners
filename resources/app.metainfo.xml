@@ -22,9 +22,9 @@
       Changes apply instantly without restarting the daemon.
     </p>
   </description>
-  <url type="homepage">https://github.com/cosmic-utils/cosmic-hot-corners</url>
-  <url type="vcs-browser">https://github.com/cosmic-utils/cosmic-hot-corners</url>
-  <url type="bugtracker">https://github.com/cosmic-utils/cosmic-hot-corners/issues</url>
+  <url type="homepage">https://github.com/boloto1979/cosmic-hotcorners</url>
+  <url type="vcs-browser">https://github.com/boloto1979/cosmic-hotcorners</url>
+  <url type="bugtracker">https://github.com/boloto1979/cosmic-hotcorners/issues</url>
   <launchable type="desktop-id">io.github.cosmic-hot-corners.settings.desktop</launchable>
   <provides>
     <binary>cosmic-hot-corners</binary>
