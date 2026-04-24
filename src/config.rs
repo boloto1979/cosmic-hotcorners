@@ -7,9 +7,7 @@ use serde::{Deserialize, Serialize};
 pub enum CornerAction {
     Disabled,
     ShowWorkspaces,
-    ShowDesktop,
     OpenLauncher,
-    ToggleNightLight,
     RunCommand(String),
 }
 
@@ -22,6 +20,7 @@ impl Default for CornerAction {
 #[derive(Debug, Clone, CosmicConfigEntry, Eq, PartialEq)]
 #[version = 1]
 pub struct Config {
+    pub enabled: bool,
     pub delay_ms: u64,
     pub top_left: CornerAction,
     pub top_right: CornerAction,
@@ -32,6 +31,7 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Self {
+            enabled: true,
             delay_ms: 300,
             top_left: CornerAction::Disabled,
             top_right: CornerAction::Disabled,

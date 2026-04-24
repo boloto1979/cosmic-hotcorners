@@ -3,14 +3,14 @@ Name=Cosmic Hot Corners
 Comment=Hot corners daemon for the COSMIC™ desktop
 Type=Application
 Icon=io.github.cosmic-hot-corners
-Exec=cosmic-hot-corners
+Exec=cosmic-hot-corners --daemon
 Terminal=false
 StartupNotify=false
 NoDisplay=true
-Categories=COSMIC
-Keywords=COSMIC
+Categories=COSMIC;Utility;
+Keywords=COSMIC;hot corners;corners;wayland;
 Actions=Settings;
 
 [Desktop Action Settings]
 Name=Configure Hot Corners
-Exec=cosmic-hot-corners --settings
+Exec=cosmic-hot-corners

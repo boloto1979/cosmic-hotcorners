@@ -10,14 +10,12 @@ use cosmic::{ApplicationExt, Element};
 static ACTION_LABELS: &[&str] = &[
     "Disabled",
     "Show Workspaces",
-    "Show Desktop",
     "Open Launcher",
-    "Toggle Night Light",
     "Run Command",
 ];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Corner {
+pub(crate) enum Corner {
     TopLeft,
     TopRight,
     BottomLeft,
@@ -48,10 +46,8 @@ fn action_to_index(action: &CornerAction) -> usize {
     match action {
         CornerAction::Disabled => 0,
         CornerAction::ShowWorkspaces => 1,
-        CornerAction::ShowDesktop => 2,
-        CornerAction::OpenLauncher => 3,
-        CornerAction::ToggleNightLight => 4,
-        CornerAction::RunCommand(_) => 5,
+        CornerAction::OpenLauncher => 2,
+        CornerAction::RunCommand(_) => 3,
     }
 }
 
@@ -65,10 +61,8 @@ fn action_cmd(action: &CornerAction) -> String {
 fn index_to_action(index: usize, cmd: &str) -> CornerAction {
     match index {
         1 => CornerAction::ShowWorkspaces,
-        2 => CornerAction::ShowDesktop,
-        3 => CornerAction::OpenLauncher,
-        4 => CornerAction::ToggleNightLight,
-        5 => CornerAction::RunCommand(cmd.to_string()),
+        2 => CornerAction::OpenLauncher,
+        3 => CornerAction::RunCommand(cmd.to_string()),
         _ => CornerAction::Disabled,
     }
 }
@@ -84,6 +78,7 @@ pub struct SettingsApp {
 
 #[derive(Debug, Clone)]
 pub enum Message {
+    Toggled(bool),
     ActionSelected(Corner, usize),
     CommandChanged(Corner, String),
     DelayChanged(String),
@@ -135,8 +130,13 @@ impl cosmic::Application for SettingsApp {
         (app, title_task.into())
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         let spacing = cosmic::theme::spacing();
+
+        let enable_row = widget::settings::item(
+            "Enable Hot Corners",
+            widget::toggler(self.config.enabled).on_toggle(Message::Toggled),
+        );
 
         let delay_row = widget::settings::item(
             "Activation delay (ms)",
@@ -158,7 +158,7 @@ impl cosmic::Application for SettingsApp {
             .width(Length::Fill);
 
         Column::new()
-            .push(widget::list_column().add(delay_row))
+            .push(widget::list_column().add(enable_row).add(delay_row))
             .push(top_row)
             .push(bottom_row)
             .spacing(spacing.space_m)
@@ -168,6 +168,10 @@ impl cosmic::Application for SettingsApp {
 
     fn update(&mut self, message: Message) -> Task<Message> {
         match message {
+            Message::Toggled(v) => {
+                self.config.enabled = v;
+                self.flush();
+            }
             Message::ActionSelected(corner, index) => {
                 self.selected[corner.index()] = index;
                 self.apply_corner(corner);
@@ -191,7 +195,7 @@ impl cosmic::Application for SettingsApp {
 }
 
 impl SettingsApp {
-    fn corner_section(&self, corner: Corner) -> Element<Message> {
+    fn corner_section(&self, corner: Corner) -> Element<'_, Message> {
         let i = corner.index();
 
         let mut section = widget::list_column().add(widget::settings::item(
@@ -203,7 +207,7 @@ impl SettingsApp {
             ),
         ));
 
-        if self.selected[i] == 5 {
+        if self.selected[i] == 3 {
             section = section.add(widget::settings::item(
                 "Command",
                 widget::text_input("sh -c ...", &self.commands[i])

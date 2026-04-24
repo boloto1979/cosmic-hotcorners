@@ -1,2 +1,31 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg"/>
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <title>cosmic-hotcorners</title>
+  <desc>Ícone flat geométrico — cantos em L com destaque coral</desc>
+
+  <rect width="512" height="512" rx="96" fill="#1B1F2E"/>
+  <rect x="64" y="64" width="384" height="384" rx="40" fill="#252A3D"/>
+
+  <rect x="64" y="64" width="96" height="10" fill="#FF6B6B"/>
+  <rect x="64" y="64" width="10" height="96" fill="#FF6B6B"/>
+
+  <rect x="352" y="64" width="96" height="10" fill="#FF6B6B"/>
+  <rect x="438" y="64" width="10" height="96" fill="#FF6B6B"/>
+
+  <rect x="64" y="438" width="96" height="10" fill="#FF6B6B"/>
+  <rect x="64" y="352" width="10" height="96" fill="#FF6B6B"/>
+
+  <rect x="352" y="438" width="96" height="10" fill="#FF6B6B"/>
+  <rect x="438" y="352" width="10" height="96" fill="#FF6B6B"/>
+
+  <circle cx="160" cy="69"  r="7" fill="#FF6B6B"/>
+  <circle cx="69"  cy="160" r="7" fill="#FF6B6B"/>
+  <circle cx="352" cy="69"  r="7" fill="#FF6B6B"/>
+  <circle cx="443" cy="160" r="7" fill="#FF6B6B"/>
+  <circle cx="160" cy="443" r="7" fill="#FF6B6B"/>
+  <circle cx="69"  cy="352" r="7" fill="#FF6B6B"/>
+  <circle cx="352" cy="443" r="7" fill="#FF6B6B"/>
+  <circle cx="443" cy="352" r="7" fill="#FF6B6B"/>
+
+  <rect x="231" y="231" width="50" height="50" rx="10" fill="#FF6B6B"/>
+  <polygon points="244,268 256,244 268,268" fill="#1B1F2E"/>
+</svg>

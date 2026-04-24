@@ -5,6 +5,9 @@ debug/
 target/
 vendor/
 vendor.tar
+.flatpak-builder/
+flatpak-build-dir/
+generated-sources.json
 debian/*
 !debian/changelog
 !debian/control
@@ -12,3 +15,4 @@ debian/*
 !debian/install
 !debian/rules
 !debian/source
+build-aux/

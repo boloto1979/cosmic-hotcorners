@@ -147,6 +147,7 @@ impl cosmic::Application for AppModel {
     fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::OutputAdded(output) => {
+                eprintln!("[hot-corners] OutputAdded! Creating 4 surfaces...");
                 let surfaces: [(window::Id, SctkLayerSurfaceSettings); 4] = CORNERS.map(|corner| {
                     let id = window::Id::unique();
                     let settings = SctkLayerSurfaceSettings {
@@ -173,6 +174,7 @@ impl cosmic::Application for AppModel {
                     .into_iter()
                     .map(|(_, s)| get_layer_surface(s))
                     .collect();
+                eprintln!("[hot-corners] {} surfaces created.", tasks.len());
                 return Task::batch(tasks);
             }
             Message::OutputRemoved(output) => {
@@ -189,6 +191,7 @@ impl cosmic::Application for AppModel {
                 self.config = config;
             }
             Message::CursorMoved(id) => {
+                eprintln!("[hot-corners] CursorMoved on {:?}, active={:?}, outputs={}", id, self.active_corner, self.outputs.len());
                 if self.active_corner == Some(id) {
                     return Task::none();
                 }
@@ -198,9 +201,14 @@ impl cosmic::Application for AppModel {
                     .flat_map(|(_, ids): &(WlOutput, [(window::Id, Corner); 4])| ids.iter())
                     .find(|(cid, _)| *cid == id)
                     .map(|(_, c)| *c);
-                let Some(corner) = corner else {
+                if corner.is_none() {
+                    if self.active_corner.is_some() {
+                        self.active_corner = None;
+                        self.pending_generation += 1;
+                    }
                     return Task::none();
-                };
+                }
+                let corner = corner.unwrap();
                 self.active_corner = Some(id);
                 self.pending_generation += 1;
                 let trigger_gen = self.pending_generation;
@@ -222,7 +230,7 @@ impl cosmic::Application for AppModel {
                 }
             }
             Message::TriggerCorner(corner, trigger_gen) => {
-                if trigger_gen == self.pending_generation {
+                if trigger_gen == self.pending_generation && self.config.enabled {
                     let action = match corner {
                         Corner::TopLeft => &self.config.top_left,
                         Corner::TopRight => &self.config.top_right,
@@ -246,12 +254,10 @@ fn execute_action(action: &CornerAction) -> Task<Message> {
             let _ = dbus_show_workspaces().await;
             Message::Noop
         }),
-        CornerAction::ShowDesktop => Task::none(),
         CornerAction::OpenLauncher => cosmic::task::future(async {
             let _ = dbus_open_launcher().await;
             Message::Noop
         }),
-        CornerAction::ToggleNightLight => Task::none(),
         CornerAction::RunCommand(cmd) => {
             let _ = std::process::Command::new("sh").args(["-c", cmd]).spawn();
             Task::none()

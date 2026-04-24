@@ -63,6 +63,14 @@ check-json: (check '--message-format=json')
 run *args:
     env RUST_BACKTRACE=full cargo run --release --locked {{args}}
 
+# Run the settings GUI for development
+run-settings:
+    env RUST_BACKTRACE=full cargo run --release --locked
+
+# Run the daemon for development
+run-daemon:
+    env RUST_BACKTRACE=full cargo run --release --locked -- --daemon
+
 # Installs files
 install:
     install -Dm0755 {{ cargo-target-dir / 'release' / name }} {{bin-dst}}
@@ -71,7 +79,7 @@ install:
     install -Dm0644 {{ 'resources' / appdata }} {{appdata-dst}}
     install -Dm0644 {{ 'resources' / 'icons' / 'hicolor' / 'scalable' / 'apps' / 'icon.svg' }} {{icon-svg-dst}}
 
-# Enables autostart for the current user
+# Enable autostart for the current user
 autostart:
     mkdir -p ~/.config/autostart
     install -Dm0644 {{ 'resources' / desktop }} ~/.config/autostart/{{desktop}}
@@ -106,4 +114,25 @@ tag version:
     git commit -m 'release: {{version}}'
     git commit --amend
     git tag -a {{version}} -m ''
+
+# Generate Flatpak cargo sources (requires Python 3 + aiohttp: pip install aiohttp toml)
+# Downloads flatpak-cargo-generator from flatpak-builder-tools and runs it.
+flatpak-sources:
+    mkdir -p build-aux
+    curl -fsSL https://raw.githubusercontent.com/flatpak/flatpak-builder-tools/master/cargo/flatpak-cargo-generator.py \
+        -o build-aux/flatpak-cargo-generator.py
+    python3 build-aux/flatpak-cargo-generator.py Cargo.lock -o generated-sources.json
+
+# Build and install the Flatpak locally for testing (requires flatpak-builder)
+flatpak-build:
+    flatpak-builder --install --user --force-clean flatpak-build-dir \
+        io.github.cosmic-hot-corners.yml
+
+# Run the installed Flatpak (daemon mode)
+flatpak-run:
+    flatpak run io.github.cosmic-hot-corners --daemon
+
+# Run the installed Flatpak (settings GUI)
+flatpak-run-settings:
+    flatpak run io.github.cosmic-hot-corners
 

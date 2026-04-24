@@ -12,8 +12,8 @@ The project is fully integrated with the COSMIC ecosystem: configuration is stor
 
 ```
 main.rs
-├── cosmic-hot-corners            // daemon mode (no visible window)
-└── cosmic-hot-corners --settings // GUI settings window
+├── cosmic-hot-corners            // opens settings GUI (default)
+└── cosmic-hot-corners --daemon   // runs the daemon (no visible window)
 
 app.rs
 ├── init()         Loads config; waits for Wayland output events to create surfaces.
@@ -49,9 +49,7 @@ settings_app.rs
 |---|---|
 | `Disabled` | No-op |
 | `ShowWorkspaces` | Opens the workspaces overview via D-Bus (`com.system76.CosmicWorkspaces`) |
-| `ShowDesktop` | *(not yet available in COSMIC)* |
 | `OpenLauncher` | Opens the app launcher via D-Bus (`com.system76.CosmicLauncher`) |
-| `ToggleNightLight` | *(not yet available in COSMIC)* |
 | `RunCommand(String)` | Executes an arbitrary shell command via `sh -c` |
 
 ## Configuration
@@ -106,7 +104,7 @@ sudo just install
 Launch the settings GUI to configure each corner:
 
 ```sh
-cosmic-hot-corners --settings
+cosmic-hot-corners
 ```
 
 Or open **Hot Corners Settings** from the COSMIC app drawer.
@@ -142,6 +140,47 @@ just vendor
 just build-vendored
 just rootdir=debian/cosmic-hot-corners prefix=/usr install
 ```
+
+## Flatpak
+
+The project ships a Flatpak manifest at `io.github.cosmic-hot-corners.yml`.
+
+### Build and test locally
+
+**1. Install dependencies:**
+
+```sh
+sudo apt install flatpak flatpak-builder
+flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+flatpak install flathub org.freedesktop.Platform//25.08 org.freedesktop.Sdk//25.08 \
+    org.freedesktop.Sdk.Extension.rust-stable//25.08
+```
+
+**2. Generate cargo sources** (required once, and again after `Cargo.lock` changes):
+
+```sh
+pip install aiohttp toml
+just flatpak-sources
+```
+
+**3. Build and install locally:**
+
+```sh
+just flatpak-build
+```
+
+**4. Test:**
+
+```sh
+just flatpak-run-settings   # open settings GUI
+just flatpak-run            # run daemon
+```
+
+### Submit to Flathub
+
+1. Create a GitHub repo named `io.github.cosmic-hot-corners` under the [flathub](https://github.com/flathub) org (via a PR to [flathub/flathub](https://github.com/flathub/flathub))
+2. In that repo: copy `io.github.cosmic-hot-corners.yml` and `generated-sources.json`, adjusting the source from `type: dir` to a versioned archive or git tag
+3. The Flathub CI builds and validates the manifest — the team reviews and merges
 
 ## Development
 

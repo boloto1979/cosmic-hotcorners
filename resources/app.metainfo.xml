@@ -1,35 +1,56 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop-application">
-  <id>com.github.pop-os.cosmic-app-template</id>
+  <id>io.github.cosmic-hot-corners</id>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>MPL-2.0</project_license>
   <name>Cosmic Hot Corners</name>
-  <summary>An application for the COSMIC™ desktop</summary>
-  <icon type="remote" width="64" height="64" scale="1">
-    https://github.com/pop-os/cosmic-app-template/raw/main/resources/icons/hicolor/scalable/apps/icon.svg
-  </icon>
-  <url type="vcs-browser">https://github.com/pop-os/cosmic-app-template</url>
-  <launchable type="desktop-id">com.github.pop-os.cosmic-app-template.desktop</launchable>
+  <summary>Hot corners daemon for the COSMIC™ desktop</summary>
+  <description>
+    <p>
+      Cosmic Hot Corners is a background daemon that triggers configurable actions
+      when the mouse pointer enters a screen corner. It supports multiple monitors
+      and integrates natively with the COSMIC desktop ecosystem.
+    </p>
+    <p>Available actions per corner:</p>
+    <ul>
+      <li>Show Workspaces overview</li>
+      <li>Open App Launcher</li>
+      <li>Run a custom shell command</li>
+    </ul>
+    <p>
+      Settings are configured through the included graphical interface.
+      Changes apply instantly without restarting the daemon.
+    </p>
+  </description>
+  <url type="homepage">https://github.com/cosmic-utils/cosmic-hot-corners</url>
+  <url type="vcs-browser">https://github.com/cosmic-utils/cosmic-hot-corners</url>
+  <url type="bugtracker">https://github.com/cosmic-utils/cosmic-hot-corners/issues</url>
+  <launchable type="desktop-id">io.github.cosmic-hot-corners.settings.desktop</launchable>
   <provides>
-    <id>com.github.pop-os.cosmic-app-template</id>
-    <binaries>
-      <binary>cosmic-hot-corners</binary>
-    </binaries>
+    <binary>cosmic-hot-corners</binary>
   </provides>
-  <requires>
-    <display_length compare="ge">360</display_length>
-  </requires>
   <supports>
-    <control>keyboard</control>
     <control>pointing</control>
-    <control>touch</control>
   </supports>
   <categories>
+    <category>Utility</category>
     <category>COSMIC</category>
   </categories>
   <keywords>
     <keyword>COSMIC</keyword>
+    <keyword>hot corners</keyword>
+    <keyword>corners</keyword>
+    <keyword>wayland</keyword>
+    <keyword>daemon</keyword>
   </keywords>
   <content_rating type="oars-1.1" />
+  <releases>
+    <release version="0.1.0" date="2026-04-23">
+      <description>
+        <p>Initial release.</p>
+      </description>
+    </release>
+  </releases>
 </component>
+
 
